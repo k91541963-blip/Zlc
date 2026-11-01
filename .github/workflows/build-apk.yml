@@ -2,6 +2,11 @@ name: Build Nova Launcher APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'apk/**'
   schedule:
     - cron: '0 3 * * *'
 
