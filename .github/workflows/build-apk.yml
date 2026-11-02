@@ -40,7 +40,7 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
 
       - name: Cache Rust build
         uses: actions/cache@v4
@@ -83,6 +83,13 @@ jobs:
       - name: Report build errors
         if: steps.build.outcome == 'failure'
         run: |
+          mkdir -p logs
+          tail -n 400 src/gradle-build.log > logs/gradle-build.log
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add logs
+          git commit -m "logs: failed build" || true
+          git push || true
           grep -E "^e: |error:|Execution failed|Caused by:|FAILURE:" src/gradle-build.log | head -40 | while IFS= read -r line; do
             echo "::error::$line"
           done
