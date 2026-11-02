@@ -97,16 +97,48 @@ jobs:
           done
           exit 1
 
-      - name: Commit APK
+      - name: Prepare APK
+        id: prepare
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p apk
+          ls -la src/ZalithLauncher/build/outputs/apk/debug/
           cp src/ZalithLauncher/build/outputs/apk/debug/*.apk apk/NovaLauncher-arm64-debug.apk
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apk
-          if git diff --cached --quiet; then
-            echo "APK is already up to date"
-          else
-            git commit -m "apk: Nova Launcher arm64 debug ($(git -C src rev-parse --short HEAD))"
-            git push origin HEAD:main
+          ls -la apk
+
+      - name: Publish release
+        if: steps.prepare.outcome == 'success'
+        continue-on-error: true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: Nova Launcher (arm64 debug)
+          body: |
+            Debug APK built from `nova/phase2-branding`.
+          files: apk/NovaLauncher-arm64-debug.apk
+          prerelease: true
+
+      - name: Commit APK
+        id: commit
+        if: steps.prepare.outcome == 'success'
+        shell: bash
+        run: |
+          set +e
+          {
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -f apk/NovaLauncher-arm64-debug.apk
+            if git diff --cached --quiet; then
+              echo "APK is already up to date"
+            else
+              git commit -m "apk: Nova Launcher arm64 debug ($(git -C src rev-parse --short HEAD))"
+              git push origin HEAD:main
+            fi
+          } > commit.log 2>&1
+          status=$?
+          cat commit.log
+          if [ $status -ne 0 ]; then
+            tail -n 20 commit.log | while IFS= read -r line; do echo "::error::$line"; done
+            exit 1
           fi
