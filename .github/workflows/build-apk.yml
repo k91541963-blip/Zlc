@@ -118,27 +118,3 @@ jobs:
             Debug APK built from `nova/phase2-branding`.
           files: apk/NovaLauncher-arm64-debug.apk
           prerelease: true
-
-      - name: Commit APK
-        id: commit
-        if: steps.prepare.outcome == 'success'
-        shell: bash
-        run: |
-          set +e
-          {
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -f apk/NovaLauncher-arm64-debug.apk
-            if git diff --cached --quiet; then
-              echo "APK is already up to date"
-            else
-              git commit -m "apk: Nova Launcher arm64 debug ($(git -C src rev-parse --short HEAD))"
-              git push origin HEAD:main
-            fi
-          } > commit.log 2>&1
-          status=$?
-          cat commit.log
-          if [ $status -ne 0 ]; then
-            tail -n 20 commit.log | while IFS= read -r line; do echo "::error::$line"; done
-            exit 1
-          fi
